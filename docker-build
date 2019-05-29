@@ -1,0 +1,52 @@
+#!/usr/bin/env sh
+
+root="$(git rev-parse --show-toplevel)"
+logfile="${repo_root}/$(basename $0).log"
+
+if ! command -v docker; then
+    echo "FATAL: Missing build dependency: docker"
+    exit 1
+fi
+
+if [ "$(command docker images -q fedy-builder:latest 2> /dev/null)" == "" ]; then
+    context="${root}/lib/docker/builder"
+
+    if [ ! -f "${context}/Dockerfile" ]; then
+        echo "FATAL: Dockerfile not found in ${context}"
+        exit 1
+    fi
+
+    printf "Building 'fedy-builder' from ${context}... "
+    if ! command docker build -t fedy-builder:latest "$context"; then
+        printf "ERROR\n"
+        echo "Logfile: ${logfile}"
+        exit 1
+    fi
+    printf "OKAY\n"
+fi
+
+case "$1" in
+    repodata)
+         docker run \
+            --interactive \
+            --rm \
+            -v "$PWD":/pkg \
+            --workdir /pkg \
+            -u $(id -u):$(id -g) \
+            --entrypoint="/pkg/build" \
+            fedy-builder:latest \
+            --repo
+        ;;
+    *)
+        docker run \
+            --interactive \
+            --rm \
+            -v "$PWD":/pkg \
+            --workdir /pkg \
+            -u $(id -u):$(id -g) \
+            --entrypoint="/pkg/build" \
+            fedy-builder:latest \
+            "$1" 
+        ;;
+esac
+

@@ -1,0 +1,25 @@
+#!/bin/sh
+
+action="$1"
+shift 1;
+
+case "$action" in
+    --range)
+        for file in $(git diff --diff-filter=AMT --no-commit-id --name-only -r "$1"... -- dist/); do
+            dest=$(echo "$file" | sed -e 's/^dist\///')
+            aws s3 cp "$file" s3://dl.folkswithhats.org/fedora/"$dest"
+            aws s3 cp "$file" s3://www.folkswithhats.org/repo/"$dest"
+        done
+        ;;
+    --sync)
+        for dir in dist/*; do
+            dest=$(echo "$dir" | sed -e 's/^dist\///')
+            aws s3 sync "$dir" s3://dl.folkswithhats.org/fedora/"$dest"
+            aws s3 sync "$dir" s3://www.folkswithhats.org/repo/"$dest"
+        done
+        ;;
+    *)
+        echo "must provide one of either '--sync' or '--range'"
+        exit 1
+        ;;
+esac

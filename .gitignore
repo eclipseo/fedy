@@ -1,3 +1,9 @@
+# temporary files
 *~
 *.swp
+
+# os-specific files
 .DS_Store
+
+# bazel
+bazel-*

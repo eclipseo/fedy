@@ -1,0 +1,41 @@
+#!/bin/bash
+
+fedora_vers=(26 27 28)
+top_dir=$(pwd)
+
+if [[ "$1" == "--repo" ]]; then
+	build_repo="true"
+elif [[ "$1" != "" ]]; then	
+	package_name="$1"
+else
+	echo "No argument given, Pass --repo or package name to build."
+
+	exit 1
+fi
+
+for version in ${fedora_vers[@]}; do
+	repodir="${top_dir}/dist/${version}"
+
+	if [[ "$build_repo" == "true" ]]; then
+		# Create repo data
+		createrepo --delta $repodir
+	else
+		for spec in SPECS/*.spec; do
+			if [[ "$package_name" != "" && "${package_name}.spec" != "$(basename $spec)" ]]; then
+				continue
+			fi
+
+			package_built="true"
+
+			rpmbuild -ba \
+				--define "_topdir ${top_dir}" \
+				--define "_rpmdir ${repodir}/RPMS" \
+				--define "_srcrpmdir ${repodir}/SRPMS" \
+				--define "dist .fc${version}" $spec
+		done
+	fi
+done
+
+if [[ "$package_name" != "" && "$package_built" != "true" ]]; then
+	echo "Package not found. Check the 'SPECS/' directory."
+fi
